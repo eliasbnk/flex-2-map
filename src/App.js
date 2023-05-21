@@ -16,7 +16,6 @@ import stateOptions from "./options";
 
 function App() {
   const [images, setImages] = useState([]);
-  const [progress, setProgress] = useState(0);
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -140,7 +139,7 @@ function App() {
 
     for (let i = 0; i < imageBatches.length; i++) {
       const batch = imageBatches[i];
-      setProgress((i + 1) * batchSize); // Update progress based on the batch size
+
 
       // Process images in the current batch concurrently
       const batchResults = await Promise.all(
@@ -169,7 +168,7 @@ function App() {
 
     const itemsArray = Array.from(itemsSet);
     setItems(itemsArray);
-    setProgress(0);
+
     setIsLoading(false);
     setImages([]);
   };
@@ -211,7 +210,7 @@ function App() {
     return (
       <Dimmer active>
         <Loader>
-          Processing... {progress}/{total}
+          Processing...
         </Loader>
       </Dimmer>
     );
@@ -226,6 +225,7 @@ function App() {
         flexDirection: "column",
         marginRight: "10%",
         marginLeft: "10%",
+        height: "100%"
       }}
     >
       <Header style={{ marginLeft: "auto", marginRight: "auto" }} as="h1">
@@ -454,7 +454,7 @@ function App() {
         <a href="https://github.com/eliasbnk" target="_blank">
            eliasbnk
         </a>
-        <br/> last updated: {formattedDate} &#183; v1.1.2
+        <br/> last updated: {formattedDate} &#183; v1.1.3
       </Label>
     </div>
   );
