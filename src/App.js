@@ -443,10 +443,11 @@ function App() {
       <Label
         color="grey"
         style={{
-          marginTop: "25px",
+          marginTop: "30px",
           textAlign: "center",
           marginLeft: "auto",
           marginRight: "auto",
+          marginBottom: "30px",
         }}
       >
         made with &#10084; by{" "}
