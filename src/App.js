@@ -178,13 +178,12 @@ const performOCR = async () => {
     const itemsArray = Array.from(itemsSet);
     setItems(itemsArray);
 
-
+setIsLoading(false);
   } catch (error) {
-    console.error(error);
+    setIsLoading(false);
     setHasError(true);
     setErrorMessage('An error occurred while processing your image(s). Please refresh the page, and try again.');
   } finally {
-setIsLoading(false);
     setImages([]);
   }
 };
