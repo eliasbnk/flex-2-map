@@ -1,4 +1,4 @@
-/* eslint-disable no-plusplus */
+
 import React, { useState, useEffect, useRef } from 'react';
 import Tesseract from 'tesseract.js';
 import {
@@ -190,7 +190,7 @@ function App() {
         style={{ marginTop: '15px' }}
       />
 
-      <Label style={{ marginTop: '30px' }} standard content="Preffered Map:" />
+      <Label style={{ marginTop: '30px' }} standard content="Preferred Map:" />
       <div
         className="maps-provider"
         style={{
