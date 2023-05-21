@@ -171,6 +171,10 @@ const performOCR = async () => {
               .replace(/$/, `, ${state}`);
             itemsSet.add(fixedMatch);
           });
+        } else {
+          setIsLoading(false);
+    setHasError(true);
+    setErrorMessage('No valid data found. Please refresh the page, and try again.');
         }
       });
     }
