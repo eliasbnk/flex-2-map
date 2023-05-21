@@ -106,11 +106,11 @@ const performOCR = async () => {
   for (let i = 0; i < images.length; i++) {
     setProgress(i + 1);
     const result = await Tesseract.recognize(images[i], "eng");
-    const { text } = result.data;
+    const { text}  = result.data;
 
     const matches = text.match(regex);
     if (matches) {
-      matches.forEach((str) => {
+      for(const str of matches){
         const fixedMatch = str
           .toLowerCase()
           .replace(/\n/g, " ")
@@ -118,7 +118,7 @@ const performOCR = async () => {
           .replace(/$/, `, ${state}`);
 
         itemsSet.add(fixedMatch);
-      });
+      };
     }
   }
 
@@ -136,12 +136,7 @@ const performOCR = async () => {
   }
 };
 
-
-
-
-
-
-
+  
   const generateDrivingDirectionLink = () => {
     const itemsToPass = items.slice(0, isAppleMaps ? 14 : 10);
     const encodedOrigin = encodeURIComponent("Current location");
