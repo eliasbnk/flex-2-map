@@ -1,6 +1,5 @@
-
-import React, { useState, useEffect, useRef } from 'react';
-import Tesseract from 'tesseract.js';
+import React, { useState, useEffect, useRef } from "react";
+import Tesseract from "tesseract.js";
 import {
   Button,
   Card,
@@ -12,8 +11,8 @@ import {
   Header,
   Form,
   Image,
-} from 'semantic-ui-react';
-import stateOptions from './options';
+} from "semantic-ui-react";
+import stateOptions from "./options";
 
 function App() {
   const [images, setImages] = useState([]);
@@ -22,11 +21,17 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [editIndex, setEditIndex] = useState(-1);
-  const [editedText, setEditedText] = useState('');
-  const [state, setState] = useState('CA');
+  const [editedText, setEditedText] = useState("");
+  const [state, setState] = useState("CA");
   const [isAppleMaps, setIsAppleMaps] = useState(true);
-  const [manualAddress, setManualAddress] = useState('');
+  const [manualAddress, setManualAddress] = useState("");
   const fileInputRef = useRef(null);
+
+  const lastModifiedDate = new Date(document.lastModified);
+  const month = lastModifiedDate.getMonth() + 1; // Add 1 because months are zero-based
+  const day = lastModifiedDate.getDate();
+  const year = lastModifiedDate.getFullYear();
+  var formattedDate = `${month}/${day}/${year}`;
 
   useEffect(() => {
     setTotal(images.length);
@@ -60,21 +65,21 @@ function App() {
 
   const cancelEdit = () => {
     setEditIndex(-1);
-    setEditedText('');
+    setEditedText("");
   };
 
   const saveEdit = (index) => {
     updateItem(index, editedText);
     setEditIndex(-1);
-    setEditedText('');
+    setEditedText("");
   };
 
   const handleDragStart = (e, index) => {
-    e.dataTransfer.setData('cardIndex', index);
+    e.dataTransfer.setData("cardIndex", index);
   };
 
   const handleDrop = (e, newIndex) => {
-    const cardIndex = e.dataTransfer.getData('cardIndex');
+    const cardIndex = e.dataTransfer.getData("cardIndex");
     const updatedItems = [...items];
     const [draggedItem] = updatedItems.splice(cardIndex, 1);
     updatedItems.splice(newIndex, 0, draggedItem);
@@ -90,27 +95,76 @@ function App() {
 
   const regex = new RegExp(regexPattern);
 
+// const performOCR = async () => {
+//   setIsLoading(true);
+//   const itemsSet = new Set(items);
+
+//   for (let i = 0; i < images.length; i++) {
+//     setProgress(i + 1);
+//     const result = await Tesseract.recognize(images[i], "eng");
+//     const { text } = result.data;
+
+//     const matches = text.match(regex);
+//     if (matches) {
+//       matches.forEach((str) => {
+//         const fixedMatch = str
+//           .toLowerCase()
+//           .replace(/\n/g, " ")
+//           .replace(/\s{2,}/g, " ")
+//           .replace(/$/, `, ${state}`);
+
+//         itemsSet.add(fixedMatch);
+//       });
+//     }
+//   }
+
+//   const itemsArray = Array.from(itemsSet);
+//   setItems(itemsArray);
+//   setProgress(0);
+//   setIsLoading(false);
+//   setImages([]);
+// };
+
+
   const performOCR = async () => {
     setIsLoading(true);
     const itemsSet = new Set(items);
+    const batchSize = 4; // Adjust the batch size as per your needs
 
-    for (let i = 0; i < images.length; i++) {
-      setProgress(i + 1);
-      const result = await Tesseract.recognize(images[i], 'eng');
-      const { text } = result.data;
+    // Split the images into batches
+    const imageBatches = [];
+    for (let i = 0; i < images.length; i += batchSize) {
+      const batch = images.slice(i, i + batchSize);
+      imageBatches.push(batch);
+    }
 
-      const matches = text.match(regex);
-      if (matches) {
-        matches.forEach((str) => {
-          const fixedMatch = str
-            .toLowerCase()
-            .replace(/\n/g, ' ')
-            .replace(/\s{2,}/g, ' ')
-            .replace(/$/, `, ${state}`);
+    for (let i = 0; i < imageBatches.length; i++) {
+      const batch = imageBatches[i];
+      setProgress((i + 1) * batchSize); // Update progress based on the batch size
 
-          itemsSet.add(fixedMatch);
-        });
-      }
+      // Process images in the current batch concurrently
+      const batchResults = await Promise.all(
+        batch.map(async (image) => {
+          const result = await Tesseract.recognize(image, "eng");
+          const { text } = result.data;
+          return text;
+        })
+      );
+
+      // Process the OCR results
+      batchResults.forEach((text) => {
+        const matches = text.match(regex);
+        if (matches) {
+          matches.forEach((str) => {
+            const fixedMatch = str
+              .toLowerCase()
+              .replace(/\n/g, " ")
+              .replace(/\s{2,}/g, " ")
+              .replace(/$/, `, ${state}`);
+            itemsSet.add(fixedMatch);
+          });
+        }
+      });
     }
 
     const itemsArray = Array.from(itemsSet);
@@ -122,13 +176,13 @@ function App() {
 
   const generateDrivingDirectionLink = () => {
     const itemsToPass = items.slice(0, isAppleMaps ? 14 : 10);
-    const encodedOrigin = encodeURIComponent('Current location');
+    const encodedOrigin = encodeURIComponent("Current location");
     const encodedStops = itemsToPass
       .map((stop) => encodeURIComponent(stop))
-      .join(isAppleMaps ? '+to:' : '/');
+      .join(isAppleMaps ? "+to:" : "/");
     const baseURL = isAppleMaps
-      ? 'http://maps.apple.com'
-      : 'https://www.google.com/maps/dir/';
+      ? "http://maps.apple.com"
+      : "https://www.google.com/maps/dir/";
     const link = isAppleMaps
       ? `${baseURL}?saddr=${encodedOrigin}&daddr=${encodedStops}`
       : `${baseURL}${encodedOrigin}/${encodedStops}`;
@@ -142,7 +196,7 @@ function App() {
       window.location.href = link;
     } else {
       // Computer: open link in a new tab
-      window.open(link, '_blank');
+      window.open(link, "_blank");
     }
 
     setItems((prevItems) => prevItems.slice(isAppleMaps ? 14 : 10));
@@ -150,7 +204,7 @@ function App() {
 
   const handleManualAddressSubmit = () => {
     setItems((prevItems) => [...prevItems, manualAddress]);
-    setManualAddress('');
+    setManualAddress("");
   };
 
   if (isLoading) {
@@ -166,18 +220,18 @@ function App() {
   return (
     <div
       style={{
-        paddingTop: '50px',
-        display: 'flex',
-        alignContent: 'center',
-        flexDirection: 'column',
-        marginRight: '10%',
-        marginLeft: '10%',
+        paddingTop: "50px",
+        display: "flex",
+        alignContent: "center",
+        flexDirection: "column",
+        marginRight: "10%",
+        marginLeft: "10%",
       }}
     >
-      <Header style={{ marginLeft: 'auto', marginRight: 'auto' }} as="h1">
+      <Header style={{ marginLeft: "auto", marginRight: "auto" }} as="h1">
         flex-2-map
       </Header>
-      <Label style={{ marginTop: '30px' }} standard>
+      <Label style={{ marginTop: "30px" }} standard>
         State Delivering In:
       </Label>
       <Dropdown
@@ -187,64 +241,64 @@ function App() {
         options={stateOptions}
         value={state}
         onChange={(e, { value }) => setState(value)}
-        style={{ marginTop: '15px' }}
+        style={{ marginTop: "15px" }}
       />
 
-      <Label style={{ marginTop: '30px' }} standard content="Preferred Map:" />
+      <Label style={{ marginTop: "30px" }} standard content="Preferred Map:" />
       <div
         className="maps-provider"
         style={{
-          display: 'flex',
-          justifyContent: 'space-evenly',
-          marginTop: '15px',
+          display: "flex",
+          justifyContent: "space-evenly",
+          marginTop: "15px",
         }}
       >
         <div
           className="radio-group"
-          style={{ marginRight: '10px', position: 'relative' }}
+          style={{ marginRight: "10px", position: "relative" }}
         >
           <Form.Radio
             id="apple-maps"
             name="maps-provider"
             checked={isAppleMaps}
             onChange={() => setIsAppleMaps(true)}
-            style={{ display: 'none' }}
+            style={{ display: "none" }}
           />
-          <label htmlFor="apple-maps" style={{ cursor: 'pointer' }}>
+          <label htmlFor="apple-maps" style={{ cursor: "pointer" }}>
             <Image
               src="https://upload.wikimedia.org/wikipedia/commons/1/17/AppleMaps_logo.svg"
               alt="Apple Maps"
               style={{
-                width: '64px',
-                height: '64px',
-                border: isAppleMaps ? '5px solid green' : 'none',
-                borderRadius: '15px',
-                padding: '3px',
+                width: "64px",
+                height: "64px",
+                border: isAppleMaps ? "5px solid green" : "none",
+                borderRadius: "15px",
+                padding: "3px",
               }}
             />
           </label>
         </div>
         <div
           className="radio-group"
-          style={{ marginLeft: '10px', position: 'relative' }}
+          style={{ marginLeft: "10px", position: "relative" }}
         >
           <Form.Radio
             id="google-maps"
             name="maps-provider"
             checked={!isAppleMaps}
             onChange={() => setIsAppleMaps(false)}
-            style={{ display: 'none' }}
+            style={{ display: "none" }}
           />
-          <label htmlFor="google-maps" style={{ cursor: 'pointer' }}>
+          <label htmlFor="google-maps" style={{ cursor: "pointer" }}>
             <Image
               src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Google_Maps_Logo_2020.svg"
               alt="Google Maps"
               style={{
-                width: '64px',
-                height: '64px',
-                border: !isAppleMaps ? '5px solid green' : 'none',
-                borderRadius: '10px',
-                padding: '3px',
+                width: "64px",
+                height: "64px",
+                border: !isAppleMaps ? "5px solid green" : "none",
+                borderRadius: "10px",
+                padding: "3px",
               }}
             />
           </label>
@@ -254,11 +308,11 @@ function App() {
       <Label
         color="grey"
         style={{
-          marginTop: '25px',
-          textAlign: 'center',
-          width: '40%',
-          marginLeft: 'auto',
-          marginRight: 'auto',
+          marginTop: "25px",
+          textAlign: "center",
+          width: "40%",
+          marginLeft: "auto",
+          marginRight: "auto",
         }}
       >
         {`Selected ${total} Image(s)`}
@@ -270,7 +324,7 @@ function App() {
         icon="file image"
         size="huge"
         onClick={() => fileInputRef.current.click()}
-        style={{ marginTop: '10px' }}
+        style={{ marginTop: "10px" }}
       />
 
       <input
@@ -288,11 +342,11 @@ function App() {
         labelPosition="left"
         onClick={performOCR}
         disabled={images.length === 0 || isLoading}
-        style={{ marginTop: '30px' }}
+        style={{ marginTop: "30px" }}
       />
 
       {items.length > 0 && (
-        <Card.Group centered stackable style={{ marginTop: '30px' }}>
+        <Card.Group centered stackable style={{ marginTop: "30px" }}>
           {items.map((item, index) => (
             <Card
               key={index}
@@ -306,21 +360,21 @@ function App() {
                 {editIndex === index ? (
                   <div>
                     <Input
-                      style={{ width: '100%' }}
+                      style={{ width: "100%" }}
                       type="text"
                       value={editedText}
                       onChange={(e) => setEditedText(e.target.value)}
                     />
                     <div
                       className="ui two buttons"
-                      style={{ marginTop: '15px' }}
+                      style={{ marginTop: "15px" }}
                     >
                       <Button
                         color="yellow"
                         onClick={() => saveEdit(index)}
                         style={{
-                          paddingRight: '29.5px',
-                          paddingLeft: '29.5px',
+                          paddingRight: "29.5px",
+                          paddingLeft: "29.5px",
                         }}
                       >
                         Save
@@ -335,14 +389,14 @@ function App() {
                     <div>{item}</div>
                     <div
                       className="ui two buttons"
-                      style={{ marginTop: '15px' }}
+                      style={{ marginTop: "15px" }}
                     >
                       <Button
                         color="blue"
                         onClick={() => startEdit(index, item)}
                         style={{
-                          paddingRight: '29.5px',
-                          paddingLeft: '29.5px',
+                          paddingRight: "29.5px",
+                          paddingLeft: "29.5px",
                         }}
                       >
                         Edit
@@ -359,9 +413,9 @@ function App() {
         </Card.Group>
       )}
 
-      <div style={{ display: 'flex', marginTop: '30px' }}>
+      <div style={{ display: "flex", marginTop: "30px" }}>
         <Input
-          style={{ width: '100%' }}
+          style={{ width: "100%" }}
           type="text"
           placeholder="Manually add address"
           value={manualAddress}
@@ -372,8 +426,8 @@ function App() {
           content="Add"
           size="huge"
           onClick={handleManualAddressSubmit}
-          style={{ marginLeft: '10px' }}
-          disabled={!manualAddress || manualAddress === ''}
+          style={{ marginLeft: "10px" }}
+          disabled={!manualAddress || manualAddress === ""}
         />
       </div>
       <Button
@@ -384,8 +438,23 @@ function App() {
         icon="car"
         onClick={generateDrivingDirectionLink}
         disabled={items.length === 0}
-        style={{ marginTop: '30px', marginBottom: '30px' }}
+        style={{ marginTop: "30px" }}
       />
+      <Label
+        color="grey"
+        style={{
+          marginTop: "25px",
+          textAlign: "center",
+          marginLeft: "auto",
+          marginRight: "auto",
+        }}
+      >
+        made with &#10084; by{" "}
+        <a href="https://github.com/eliasbnk" target="_blank">
+           eliasbnk
+        </a>
+        <br/> last updated: {formattedDate} &#183; v1.1.2
+      </Label>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 {
   "name": "flex-2-map",
-  "version": "0.1.0",
+  "version": "1.1.2",
   "private": true,
   "dependencies": {
     "react": "^18.2.0",
