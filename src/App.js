@@ -11,6 +11,7 @@ import {
   Header,
   Form,
   Image,
+  Icon,
 } from "semantic-ui-react";
 import stateOptions from "./options";
 
@@ -24,6 +25,8 @@ function App() {
   const [state, setState] = useState("CA");
   const [isAppleMaps, setIsAppleMaps] = useState(true);
   const [manualAddress, setManualAddress] = useState("");
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const fileInputRef = useRef(null);
 
   const lastModifiedDate = new Date(document.lastModified);
@@ -125,8 +128,11 @@ function App() {
 // };
 
 
-  const performOCR = async () => {
+const performOCR = async () => {
+  try {
     setIsLoading(true);
+
+
     const itemsSet = new Set(items);
     const batchSize = 4; // Adjust the batch size as per your needs
 
@@ -140,13 +146,16 @@ function App() {
     for (let i = 0; i < imageBatches.length; i++) {
       const batch = imageBatches[i];
 
-
       // Process images in the current batch concurrently
       const batchResults = await Promise.all(
         batch.map(async (image) => {
-          const result = await Tesseract.recognize(image, "eng");
-          const { text } = result.data;
-          return text;
+          try {
+            const result = await Tesseract.recognize(image, "eng");
+            const { text } = result.data;
+            return text;
+          } catch (error) {
+            throw new Error(`OCR processing failed for image: ${image}`);
+          }
         })
       );
 
@@ -169,9 +178,17 @@ function App() {
     const itemsArray = Array.from(itemsSet);
     setItems(itemsArray);
 
-    setIsLoading(false);
+
+  } catch (error) {
+    console.error(error);
+    setHasError(true);
+    setErrorMessage('An error occurred while processing your image(s). Please refresh the page, and try again.');
+  } finally {
+setIsLoading(false);
     setImages([]);
-  };
+  }
+};
+
 
   const generateDrivingDirectionLink = () => {
     const itemsToPass = items.slice(0, isAppleMaps ? 14 : 10);
@@ -205,11 +222,23 @@ function App() {
     setItems((prevItems) => [...prevItems, manualAddress]);
     setManualAddress("");
   };
+  if (hasError) {
+    return (
+      <div style={{ height:"100vh", backgroundColor:"#D21F3C",   display: "flex",  justifyContent: "center", alignItems:"center",
+        flexDirection: "column",
+       }}>
+        <div style={{ marginRight: "10%", marginLeft: "10%", color:"white", textAlign:"center"}}>
+          <Icon name="exclamation triangle" size="huge" inverted />
+          <h3>{errorMessage}</h3>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
       <Dimmer active>
-        <Loader>
+        <Loader size="huge">
           Processing...
         </Loader>
       </Dimmer>
@@ -454,7 +483,7 @@ function App() {
         <a href="https://github.com/eliasbnk" target="_blank">
            eliasbnk
         </a>
-        <br/> last updated: {formattedDate} &#183; v1.1.3
+        <br/> last updated: {formattedDate} &#183; v1.1.4
       </Label>
     </div>
   );
