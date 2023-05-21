@@ -27,6 +27,7 @@ function App() {
   const [manualAddress, setManualAddress] = useState("");
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [progress, setProgress] = useState(0);
   const fileInputRef = useRef(null);
 
   const lastModifiedDate = new Date(document.lastModified);
@@ -97,96 +98,48 @@ function App() {
 
   const regex = new RegExp(regexPattern);
 
-// const performOCR = async () => {
-//   setIsLoading(true);
-//   const itemsSet = new Set(items);
-
-//   for (let i = 0; i < images.length; i++) {
-//     setProgress(i + 1);
-//     const result = await Tesseract.recognize(images[i], "eng");
-//     const { text } = result.data;
-
-//     const matches = text.match(regex);
-//     if (matches) {
-//       matches.forEach((str) => {
-//         const fixedMatch = str
-//           .toLowerCase()
-//           .replace(/\n/g, " ")
-//           .replace(/\s{2,}/g, " ")
-//           .replace(/$/, `, ${state}`);
-
-//         itemsSet.add(fixedMatch);
-//       });
-//     }
-//   }
-
-//   const itemsArray = Array.from(itemsSet);
-//   setItems(itemsArray);
-//   setProgress(0);
-//   setIsLoading(false);
-//   setImages([]);
-// };
-
-
 const performOCR = async () => {
-  try {
-    setIsLoading(true);
+    try {
+  setIsLoading(true);
+  const itemsSet = new Set(items);
 
+  for (let i = 0; i < images.length; i++) {
+    setProgress(i + 1);
+    const result = await Tesseract.recognize(images[i], "eng");
+    const { text } = result.data;
 
-    const itemsSet = new Set(items);
-    const batchSize = 4; // Adjust the batch size as per your needs
+    const matches = text.match(regex);
+    if (matches) {
+      matches.forEach((str) => {
+        const fixedMatch = str
+          .toLowerCase()
+          .replace(/\n/g, " ")
+          .replace(/\s{2,}/g, " ")
+          .replace(/$/, `, ${state}`);
 
-    // Split the images into batches
-    const imageBatches = [];
-    for (let i = 0; i < images.length; i += batchSize) {
-      const batch = images.slice(i, i + batchSize);
-      imageBatches.push(batch);
-    }
-
-    for (let i = 0; i < imageBatches.length; i++) {
-      const batch = imageBatches[i];
-
-      // Process images in the current batch concurrently
-      const batchResults = await Promise.all(
-        batch.map(async (image) => {
-          try {
-            const result = await Tesseract.recognize(image, "eng");
-            const { text } = result.data;
-            return text;
-          } catch (error) {
-            throw new Error(`OCR processing failed for image: ${image}`);
-          }
-        })
-      );
-
-      // Process the OCR results
-      batchResults.forEach((text) => {
-        const matches = text.match(regex);
-        if (matches) {
-          matches.forEach((str) => {
-            const fixedMatch = str
-              .toLowerCase()
-              .replace(/\n/g, " ")
-              .replace(/\s{2,}/g, " ")
-              .replace(/$/, `, ${state}`);
-            itemsSet.add(fixedMatch);
-          });
-        }
+        itemsSet.add(fixedMatch);
       });
     }
+  }
 
-    const itemsArray = Array.from(itemsSet);
-    setItems(itemsArray);
+  const itemsArray = Array.from(itemsSet);
+  setItems(itemsArray);
 
-setIsLoading(false);
-  } catch (error) {
+   } catch (error) {
     setIsLoading(false);
     setHasError(true);
     setErrorMessage('An error occurred while processing your image(s). Please refresh the page, and try again.');
-  } finally {
-    setImages([]);
+    } finally {
+      setIsLoading(false);
+      setProgress(0);
+  setImages([]);
   }
 };
+
+
+
+
+
 
 
   const generateDrivingDirectionLink = () => {
@@ -221,30 +174,54 @@ setIsLoading(false);
     setItems((prevItems) => [...prevItems, manualAddress]);
     setManualAddress("");
   };
-  if (hasError) {
-    return (
-      <div style={{ height:"100vh", backgroundColor:"#D21F3C",   display: "flex",  justifyContent: "center", alignItems:"center",
-        flexDirection: "column",
-       }}>
-        <div style={{ marginRight: "10%", marginLeft: "10%", color:"white", textAlign:"center"}}>
-          <Icon name="exclamation triangle" size="huge" inverted />
-          <h3>{errorMessage}</h3>
-        </div>
-      </div>
-    );
-  }
 
-  if (isLoading) {
-    return (
-      <Dimmer active>
-        <Loader size="huge">
-          Processing...
-        </Loader>
-      </Dimmer>
-    );
-  }
 
   return (
+
+  <div style={{ position: "relative" }}>
+      {isLoading && (
+        <div
+          style={{
+            position: "fixed",
+            width: "100%",
+            height: "100%",
+            zIndex: 100,
+         backgroundColor: "rgba(0, 0, 0, 0.3)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center"
+          }}
+        >
+          <Dimmer active inverted>
+            <Loader size="huge">
+              Processing...  {progress}/{total}
+            </Loader>
+          </Dimmer>
+        </div>
+      )}
+
+      {hasError && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: 100,
+            backgroundColor: "rgba(210, 31, 60, 0.9)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            flexDirection: "column"
+          }}
+        >
+          <div style={{ marginRight: "10%", marginLeft: "10%", color: "white", textAlign: "center" }}>
+            <Icon name="exclamation triangle" size="huge" inverted />
+            <h3>{errorMessage}</h3>
+          </div>
+        </div>
+      )}
     <div
       style={{
         paddingTop: "50px",
@@ -483,8 +460,10 @@ setIsLoading(false);
            eliasbnk
         </a>
         <br/> last updated: {formattedDate} &#183; v1.1.4
-      </Label>
-    </div>
+           </Label>
+           </div>
+           </div>
+
   );
 }
 
