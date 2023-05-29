@@ -208,7 +208,14 @@ const generateDrivingDirectionLink = (event) => {
       window.open(link, "_blank");
     }
   } else {
-    const itemsToPass = items.slice(0, isAppleMaps ? 14 : 10);
+    const itemsToPass = items.slice(
+      0,
+      (isAppleMaps && items.length < 14) || (!isAppleMaps && items.length < 10)
+        ? items.length
+        : isAppleMaps
+        ? 14
+        : 10
+    );
     const encodedOrigin = encodeURIComponent("Current location");
     const encodedStops = itemsToPass
       .map((stop) => encodeURIComponent(stop))
@@ -217,6 +224,7 @@ const generateDrivingDirectionLink = (event) => {
     const baseURL = isAppleMaps
       ? "http://maps.apple.com"
       : "https://www.google.com/maps/dir/";
+
     const newLink = isAppleMaps
       ? `${baseURL}?saddr=${encodedOrigin}&daddr=${encodedStops}&dirflg=d`
       : `${baseURL}${encodedOrigin}/${encodedStops}/data=!4m2!4m1!3e0`;
@@ -230,20 +238,15 @@ const generateDrivingDirectionLink = (event) => {
     }
 
     setTimeout(() => {
+      setItems((prevItems) =>
+        prevItems.filter((item) => !itemsToPass.includes(item))
+      );
       setLink("");
-setItems((prevItems) => {
-  (isAppleMaps && prevItems.length < 14) || (!isAppleMaps && prevItems.length < 10)
-    ? prevItems.slice(prevItems.length)
-  : isAppleMaps ?
-     prevItems.slice(14)
-  :
-     prevItems.slice(10);
-  }
-);
-
     }, 10000);
   }
 };
+
+
 
 
 
