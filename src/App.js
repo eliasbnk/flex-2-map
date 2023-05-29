@@ -37,6 +37,8 @@ function App() {
   const year = lastModifiedDate.getFullYear();
   var formattedDate = `${month}/${day}/${year}`;
 
+  const DELAY = 5;
+
   useEffect(() => {
     setTotal(images.length);
   }, [images]);
@@ -242,7 +244,7 @@ const generateDrivingDirectionLink = (event) => {
         prevItems.filter((item) => !itemsToPass.includes(item))
       );
       setLink("");
-    }, 10000);
+    }, DELAY * 1000);
   }
 };
 
