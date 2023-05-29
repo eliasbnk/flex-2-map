@@ -232,14 +232,14 @@ const generateDrivingDirectionLink = (event) => {
     setTimeout(() => {
       setLink("");
 setItems((prevItems) => {
-  if ((isAppleMaps && prevItems.length < 14) || (!isAppleMaps && prevItems.length < 10)) {
-    return prevItems.slice(0, prevItems.length);
-  } else if (isAppleMaps) {
-    return prevItems.slice(0, 14);
-  } else {
-    return prevItems.slice(0, 10);
+  (isAppleMaps && prevItems.length < 14) || (!isAppleMaps && prevItems.length < 10)
+    ? prevItems.slice(prevItems.length)
+  : isAppleMaps ?
+     prevItems.slice(14)
+  :
+     prevItems.slice(10);
   }
-});
+);
 
     }, 10000);
   }
