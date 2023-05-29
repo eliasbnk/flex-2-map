@@ -28,6 +28,7 @@ function App() {
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [progress, setProgress] = useState(0);
+  const [link, setLink] = useState("");
   const fileInputRef = useRef(null);
 
   const lastModifiedDate = new Date(document.lastModified);
@@ -39,6 +40,62 @@ function App() {
   useEffect(() => {
     setTotal(images.length);
   }, [images]);
+
+  useEffect(() => {
+    setLink("");
+  },[isAppleMaps])
+
+  useEffect(() => {
+    const storedItems = localStorage.getItem("items");
+    const storedState = localStorage.getItem("state");
+    const storedIsAppleMaps = localStorage.getItem("isAppleMaps");
+
+    if (storedItems) {
+      setItems(JSON.parse(storedItems));
+    }
+
+    if (storedState) {
+      setState(storedState);
+    } else {
+      setState("CA"); // Default state
+    }
+
+    if (storedIsAppleMaps) {
+      setIsAppleMaps(JSON.parse(storedIsAppleMaps));
+    } else {
+      setIsAppleMaps(true); // Default value
+    }
+  }, []);
+
+  useEffect(() => {
+    const clearStorage = () => {
+      localStorage.removeItem("items");
+      localStorage.removeItem("state");
+      localStorage.removeItem("isAppleMaps");
+    };
+
+    const handlePageHide = () => {
+      clearStorage();
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+    };
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("items", JSON.stringify(items));
+  }, [items]);
+
+  useEffect(() => {
+    localStorage.setItem("state", state);
+  }, [state]);
+
+  useEffect(() => {
+    localStorage.setItem("isAppleMaps", JSON.stringify(isAppleMaps));
+  }, [isAppleMaps]);
 
   const handleInputChange = () => {
     const { files } = fileInputRef.current;
@@ -71,11 +128,12 @@ function App() {
     setEditedText("");
   };
 
-  const saveEdit = (index) => {
-    updateItem(index, editedText);
-    setEditIndex(-1);
-    setEditedText("");
-  };
+const saveEdit = (index) => {
+  updateItem(index, editedText);
+  setEditIndex(-1);
+  setEditedText("");
+};
+
 
   const handleDragStart = (e, index) => {
     e.dataTransfer.setData("cardIndex", index);
@@ -110,7 +168,7 @@ const performOCR = async () => {
 
     const matches = text.match(regex);
     if (matches) {
-      for(const str of matches){
+      for(const str of matches) {
         const fixedMatch = str
           .toLowerCase()
           .replace(/\n/g, " ")
@@ -136,34 +194,60 @@ const performOCR = async () => {
   }
 };
 
-  
-  const generateDrivingDirectionLink = () => {
+const generateDrivingDirectionLink = (event) => {
+  event.preventDefault();
+
+  const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+
+  if (link && link !== "") {
+    if (isMobileDevice) {
+      window.location.href = link;
+    } else {
+      window.open(link, "_blank");
+    }
+  } else {
     const itemsToPass = items.slice(0, isAppleMaps ? 14 : 10);
     const encodedOrigin = encodeURIComponent("Current location");
     const encodedStops = itemsToPass
       .map((stop) => encodeURIComponent(stop))
       .join(isAppleMaps ? "+to:" : "/");
+
     const baseURL = isAppleMaps
       ? "http://maps.apple.com"
       : "https://www.google.com/maps/dir/";
-    const link = isAppleMaps
-      ? `${baseURL}?saddr=${encodedOrigin}&daddr=${encodedStops}`
-      : `${baseURL}${encodedOrigin}/${encodedStops}`;
+    const newLink = isAppleMaps
+      ? `${baseURL}?saddr=${encodedOrigin}&daddr=${encodedStops}&dirflg=d`
+      : `${baseURL}${encodedOrigin}/${encodedStops}/data=!4m2!4m1!3e0`;
 
-    if (
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      )
-    ) {
-      // Mobile device: set window.location.href
-      window.location.href = link;
+    setLink(newLink); // Update the link state
+
+    if (isMobileDevice) {
+      window.location.href = newLink; // Use newLink instead of link
     } else {
-      // Computer: open link in a new tab
-      window.open(link, "_blank");
+      window.open(newLink, "_blank"); // Use newLink instead of link
     }
 
-    setItems((prevItems) => prevItems.slice(isAppleMaps ? 14 : 10));
-  };
+    setTimeout(() => {
+      setLink("");
+setItems((prevItems) => {
+  if ((isAppleMaps && prevItems.length < 14) || (!isAppleMaps && prevItems.length < 10)) {
+    return prevItems.slice(0, prevItems.length);
+  } else if (isAppleMaps) {
+    return prevItems.slice(0, 14);
+  } else {
+    return prevItems.slice(0, 10);
+  }
+});
+
+    }, 10000);
+  }
+};
+
+
+
+
 
   const handleManualAddressSubmit = () => {
     setItems((prevItems) => [...prevItems, manualAddress]);
@@ -431,12 +515,12 @@ const performOCR = async () => {
         />
       </div>
       <Button
-        color="black"
+          color={link === ""  ? "black" : "olive"}
         size="huge"
         content="Get Driving Directions"
         labelPosition="left"
         icon="car"
-        onClick={generateDrivingDirectionLink}
+        onClick={(e) =>generateDrivingDirectionLink(e)}
         disabled={items.length === 0}
         style={{ marginTop: "30px" }}
       />
